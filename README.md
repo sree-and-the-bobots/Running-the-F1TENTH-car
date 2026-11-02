@@ -17,13 +17,22 @@ Repo layout:
 ```bash
 conda deactivate
 cd ~
+rm -rf f1tenth_share
 git clone https://github.com/sree-and-the-bobots/Running-the-F1TENTH-car.git f1tenth_share
+ls f1tenth_share
+```
+
+`ls` must list `follow_the_gap`, `wall_follow`, `params` and `README.md`. Then:
+
+```bash
 cp -r ~/f1tenth_share/follow_the_gap ~/f1tenth_share/wall_follow ~/f1tenth_ws/src/
 cp ~/f1tenth_share/params/gap_params_circle.yaml ~/gap_params_circle.yaml
 source /opt/ros/foxy/setup.bash
 cd ~/f1tenth_ws
 colcon build --packages-select follow_the_gap wall_follow
 ```
+
+The build must end with `Summary: 2 packages finished`.
 
 After every reboot, give the Xavier its LIDAR address and check the LIDAR answers:
 
@@ -104,7 +113,7 @@ Change a value while it runs, without restarting:
 ros2 param set /reactive_node speed_max 0.6
 ```
 
-### 1.4 Troubleshooting
+### 1.4 Troubleshooting (car)
 
 | Symptom | Fix |
 | --- | --- |
@@ -118,36 +127,59 @@ ros2 param set /reactive_node speed_max 0.6
 
 ## Part 2: Run the same code in the simulator
 
-The sim publishes `/scan` and listens on `/drive`, the same topics the car uses, so the same node runs unchanged. This assumes the F1TENTH Gym sim is already installed in `~/sim_ws` (Ubuntu 22.04, ROS 2 Humble).
+The sim publishes `/scan` and listens on `/drive`, the same topics the car uses, so the same node runs unchanged. This assumes the F1TENTH Gym sim is already installed in `~/sim_ws` (Ubuntu 22.04, ROS 2 Humble). If your workspace has another name, use that name wherever you see `sim_ws`.
 
-### 2.1 Get the code and build
+### 2.1 Get the code
 
 ```bash
 cd $HOME
+rm -rf f1tenth_share
 git clone https://github.com/sree-and-the-bobots/Running-the-F1TENTH-car.git f1tenth_share
+ls f1tenth_share
+```
+
+`ls` must list `follow_the_gap`, `wall_follow`, `params` and `README.md`. If it does not, stop and tell Sree the repo is missing files.
+
+### 2.2 Copy and build
+
+```bash
 cp -r ~/f1tenth_share/follow_the_gap ~/f1tenth_share/wall_follow ~/sim_ws/src/
+ls ~/sim_ws/src
 cd ~/sim_ws
 source /opt/ros/humble/setup.bash
 colcon build --packages-select follow_the_gap wall_follow
 ```
 
-To update later: `cd ~/f1tenth_share && git pull`, then copy and build again.
+The `ls` must show `follow_the_gap` and `wall_follow` next to `f1tenth_gym_ros`. The build must end with `Summary: 2 packages finished`.
 
-### 2.2 Run (two terminals)
+Check ROS can see the package:
+
+```bash
+source ~/sim_ws/install/setup.bash
+ros2 pkg list | grep follow
+```
+
+It must print `follow_the_gap`. If it does not, fix this before moving on.
+
+### 2.3 Run (two terminals)
+
+Every new terminal needs both `source` lines first.
 
 Terminal 1, the sim:
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ~/sim_ws/install/local_setup.bash
+source ~/sim_ws/install/setup.bash
 ros2 launch f1tenth_gym_ros gym_bridge_launch.py
 ```
+
+Wait a few seconds for the sim to load.
 
 Terminal 2, Follow the Gap:
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ~/sim_ws/install/local_setup.bash
+source ~/sim_ws/install/setup.bash
 ros2 run follow_the_gap reactive_node --ros-args --params-file ~/f1tenth_share/params/gap_params_circle.yaml -p steer_sign:=1.0
 ```
 
@@ -157,17 +189,17 @@ Or the wall follower:
 ros2 run wall_follow wall_follow_node --ros-args -p wall_side:=right -p speed:=1.0
 ```
 
-### 2.3 Checks if nothing moves
+### 2.4 Troubleshooting (sim)
 
-```bash
-ros2 node list
-ros2 topic echo /scan --once
-ros2 topic echo /drive
-```
+| Symptom | Fix |
+| --- | --- |
+| `package 'follow_the_gap' not found` | Run both `source` lines in this terminal. If it still fails, redo 2.2 and check `ls ~/sim_ws/src` and the build summary |
+| `git clone` says folder already exists | Run `rm -rf ~/f1tenth_share` and clone again |
+| Nothing moves | In a third terminal run `ros2 node list` (expect `/reactive_node`), `ros2 topic echo /scan --once` (expect numbers) and `ros2 topic echo /drive` (expect speed and steering values) |
+| No car or laser points in RViz | Add a LaserScan display on `/scan`. If the sim shows no car, run `python3 -m pip install --user -U "coverage>=7.6.1"` |
+| Car steers away from the gap | Change `steer_sign:=1.0` to `steer_sign:=-1.0` |
 
-`/reactive_node` should be in the node list, `/scan` should print data, and `/drive` should print speed and steering values. In RViz, add a LaserScan display on `/scan`.
-
-### 2.4 Differences from the real car
+### 2.5 Differences from the real car
 
 - **Steering sign:** the car needs `steer_sign: -1.0`. The sim probably needs `1.0`. If the sim car steers the wrong way, flip it.
 - **No joystick or deadman** in the sim: `/drive` goes straight to the sim car.
