@@ -8,7 +8,7 @@ Every command is meant to be pasted as-is.
 Copy the packages into the car's workspace and build:
 conda deactivate
 cd ~
-git clone <THIS_REPO_URL> f1tenth_share
+git clone https://github.com/sree-and-the-bobots/Running-the-F1TENTH-car.git f1tenth_share
 cp -r ~/f1tenth_share/follow_the_gap ~/f1tenth_share/wall_follow ~/f1tenth_ws/src/
 cp ~/f1tenth_share/params/gap_params_circle.yaml ~/gap_params_circle.yaml
 source /opt/ros/foxy/setup.bash
@@ -82,7 +82,7 @@ If the car or laser points do not appear: python3 -m pip install --user -U "cove
 2.2 Add this repo's packages and build
 bash
 cd $HOME
-git clone <THIS_REPO_URL> f1tenth_share
+git clone https://github.com/sree-and-the-bobots/Running-the-F1TENTH-car.git f1tenth_share
 cp -r ~/f1tenth_share/follow_the_gap ~/f1tenth_share/wall_follow ~/sim_ws/src/
 cd ~/sim_ws
 source /opt/ros/humble/setup.bash
